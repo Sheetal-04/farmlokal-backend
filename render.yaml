@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: farmlokal-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_DATABASE
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: farmlokal-redis
+          type: redis
+          property: connectionString
+
+  - type: redis
+    name: farmlokal-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
