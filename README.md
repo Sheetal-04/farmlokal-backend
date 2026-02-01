@@ -403,6 +403,94 @@ curl http://localhost:4000/health
 
 ---
 
+## Docker
+
+The project is fully containerized with a multi-stage Dockerfile and Docker Compose setup.
+
+```bash
+# Start all services (app + MySQL + Redis)
+docker-compose up --build
+
+# Run in detached mode
+docker-compose up --build -d
+
+# Stop all services
+docker-compose down
+```
+
+**Services:**
+
+| Service | Image | Port |
+|---------|-------|------|
+| `app` | Node 22 Alpine (multi-stage build) | `4000` |
+| `mysql` | MySQL 8.0 | `3307` (host) → `3306` (container) |
+| `redis` | Redis 7 Alpine | `6379` |
+
+- MySQL schema is auto-applied on first startup via `docker-entrypoint-initdb.d`
+- MySQL health check ensures the app only starts after the database is ready
+- Data is persisted via a named volume (`mysql_data`)
+
+---
+
+## Load Testing (k6)
+
+Load tests are written using [k6](https://k6.io/) to validate API performance under concurrent traffic.
+
+**Install k6:**
+
+```bash
+# Windows (winget)
+winget install k6 --source winget
+
+# macOS
+brew install k6
+```
+
+**Run the load test:**
+
+```bash
+k6 run scripts/load-test.js
+
+# Against a deployed URL
+k6 run -e BASE_URL=https://your-url.com scripts/load-test.js
+```
+
+**Test scenarios:**
+
+- Health check endpoint
+- Product listing (default params)
+- Cursor-based pagination (page 1 → page 2)
+- Category filtering
+- Price range filtering
+- Full-text search
+
+**Load profile:** Ramps up to 5 → 10 VUs over 80 seconds.
+
+**Sample output:**
+
+```
+  █ THRESHOLDS
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=7.82ms
+
+    http_req_failed
+    ✗ 'rate<0.05' rate=62.54%
+
+  █ TOTAL RESULTS
+
+    checks_succeeded...: 36.54% 250 out of 684
+
+    HTTP
+    http_req_duration..: avg=7.78ms min=304.59µs med=1.99ms max=321.16ms p(90)=4.22ms p(95)=7.82ms
+    http_reqs..........: 534    6.65/s
+    iterations.........: 499    6.21/s
+```
+
+> **Note:** The high failure rate above is due to the Redis-based rate limiter (100 req/60s per IP). For accurate load testing, temporarily increase `MAX_REQUESTS` in `src/middlewares/rate-limit.middleware.ts`.
+
+---
+
 ## Where I Focused Most and Why
 
 My primary focus was on **performance optimization** and **Redis usage** — the two highest-weighted areas in the evaluation criteria.
