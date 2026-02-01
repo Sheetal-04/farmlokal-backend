@@ -1,6 +1,6 @@
 import { mysqlPool } from '../src/config/mysql';
 
-const TOTAL_RECORDS = 1_000_000;   // 1M+ as required by the spec
+const TOTAL_RECORDS = 10_000;   // 10K for cloud deployment
 const BATCH_SIZE = 5000;
 
 const categories = [
